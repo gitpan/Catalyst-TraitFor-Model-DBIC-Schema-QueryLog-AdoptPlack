@@ -21,6 +21,7 @@ no_index:
     - t
 requires:
   Carp::Clan: 0
+  Catalyst::Component::InstancePerContext: 0
   DBIx::Class::QueryLog: 0
   DBIx::Class::QueryLog::Analyzer: 0
   Moose: 0
@@ -31,4 +32,4 @@ resources:
   homepage: http://github.com/jjn1056/Catalyst-TraitFor-Model-DBIC-Schema-QueryLog-AdoptPlack/tree
   license: http://dev.perl.org/licenses/
   repository: git://github.com/jjn1056/Catalyst-TraitFor-Model-DBIC-Schema-QueryLog-AdoptPlack.git
-version: 0.01
+version: 0.02
