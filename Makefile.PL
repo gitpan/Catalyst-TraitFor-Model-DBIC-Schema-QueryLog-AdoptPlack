@@ -1,21 +1,16 @@
-use strict;
-use warnings;
+#!/usr/bin/env perl
 
-use inc::Module::Install 1.00;
+use strict;
+use warnings FATAL => 'all';
+use inc::Module::Install;
 
 requires 'namespace::autoclean';
 requires 'Moose';
-requires 'Plack::Middleware::Debug';
 requires 'Carp::Clan';
-requires 'DBIx::Class::QueryLog';
-requires 'DBIx::Class::QueryLog::Analyzer';
 requires 'Catalyst::Component::InstancePerContext';
-
-build_requires 'Test::More' => '0.96';
-
+test_requires 'Test::More' => '0.96';
 all_from 'lib/Catalyst/TraitFor/Model/DBIC/Schema/QueryLog/AdoptPlack.pm';
-readme_pod_from 'lib/Catalyst/TraitFor/Model/DBIC/Schema/QueryLog/AdoptPlack.pm';
-auto_manifest;
-auto_install;
-githubmeta;
+require 'maint/Makefile.PL.include'
+  if $Module::Install::AUTHOR;
+
 WriteAll;

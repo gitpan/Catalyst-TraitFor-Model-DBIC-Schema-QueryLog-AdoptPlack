@@ -1,52 +1,31 @@
 package Catalyst::TraitFor::Model::DBIC::Schema::QueryLog::AdoptPlack;
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 use 5.008;
 use namespace::autoclean;
 use Moose::Role;
 use Carp::Clan '^Catalyst::Model::DBIC::Schema';
-use DBIx::Class::QueryLog;
-use DBIx::Class::QueryLog::Analyzer;
-
 with 'Catalyst::Component::InstancePerContext';
+requires 'storage';
 
-has 'querylog' => (
-    is  => 'rw',
-    isa => 'DBIx::Class::QueryLog',
-);
-has 'querylog_args' => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    default => sub { {} },
-);
-has 'querylog_analyzer' => (
-    is         => 'rw',
-    isa        => 'DBIx::Class::QueryLog::Analyzer',
-    lazy_build => 1
-);
-
-sub _build_querylog_analyzer {
-    my $self = shift;
-
-    return DBIx::Class::QueryLog::Analyzer->new(
-        { querylog => $self->querylog } );
+sub get_querylog_from_env {
+  my ($self, $env) = @_;
+  return $env->{'plack.middleware.debug.dbic.querylog'} ||
+    $env->{'plack.middleware.dbic.querylog'};
 }
 
 sub build_per_context_instance {
-    my ( $self, $ctx ) = @_;
-
-    if(defined $ctx->engine->env) {
-        my $querylog = $ctx->engine->env->{'plack.middleware.debug.dbic.querylog'} ||
-          $self->querylog || DBIx::Class::QueryLog->new($self->querylog_args);
-        $self->querylog($querylog);
-        $self->clear_querylog_analyzer;
-
-        my $schema = $self->schema;
-        $schema->storage->debugobj($querylog);
-        $schema->storage->debug(1);
+  my ( $self, $ctx ) = @_;
+  if($ctx->engine->can('env')) {
+    my $env = $ctx->engine->env;
+    if(my $querylog = $self->get_querylog_from_env($env)) {
+      $self->storage->debugobj($querylog);
+      $self->storage->debug(1);
     }
-
     return $self;
+  } else {
+      die "Not a Plack Engine or compatible interface!";
+  }
 }
 
 1;
@@ -73,27 +52,17 @@ created L<DBIx::Class::QueryLog> and logs SQL for a given request cycle.  It is
 intended to be compatible with L<Catalyst::TraitFor::Model::DBIC::Schema::QueryLog>
 which you may already be using.
 
-It picks up the querylog from C<< $env->{'plack.middleware.debug.dbic.querylog'} >>
-which is generally provided by the L<Plack> middleware L<Plack::Middleware::Debug::DBIC::QueryLog>
+It picks up the querylog from C<< $env->{'plack.middleware.dbic.querylog'} >>
+or from  C<< $env->{'plack.middleware.debug.dbic.querylog'} >>  which is generally
+provided by the L<Plack> middleware L<Plack::Middleware::Debug::DBIC::QueryLog>
 In fact you will probably use these two modules together.  Please see the documentation
 in L<Plack::Middleware::Debug::DBIC::QueryLog> for an example.
 
-=head1 OPTIONS
-
-This model defines the following options.
-
-=head2 querylog
-
-Takes a L<DBIx::Class::QueryLog> object, which is used as the querylog for the
-application.  Generally the whole point of this trait is to adopt the query log
-provided by the L<Plack> middleware, but if you have special needs you can set
-an instance here.  You may wish to do this if you have complicated instatiation
-needs.
-
-=head2 querylog_args
-
-Takes a HashRef which is passed to L<DBIx::Class::QueryLog> at construction,
-if needed.
+PLEASE NOTE: Starting with the 0.04 version of L<Plack::Middleware::Debug::DBIC::QueryLog>
+we will canonicalize on C<< $env->{'plack.middleware.dbic.querylog'} >>.  For now
+both aobve keys will work, but within a release or two the older key will warn and
+prompt you to upgrade your version of L<Plack::Middleware::Debug::DBIC::QueryLog>.
+Sorry for the trouble.
 
 =head1 SEE ALSO
 
@@ -103,7 +72,7 @@ L<Plack::Middleware::Debug>
 
 =head1 ACKNOWLEGEMENTS
 
-This code is basically copied from L<Catalyst::TraitFor::Model::DBIC::Schema::QueryLog>
+This code inspired from L<Catalyst::TraitFor::Model::DBIC::Schema::QueryLog>
 and the author owes a debt of gratitude for the original authors.
 
 =head1 AUTHOR
@@ -111,6 +80,8 @@ and the author owes a debt of gratitude for the original authors.
 John Napiorkowski, C<< <jjnapiork@cpan.org> >>
 
 =head1 COPYRIGHT & LICENSE
+
+Copyright 2010, John Napiorkowski
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
