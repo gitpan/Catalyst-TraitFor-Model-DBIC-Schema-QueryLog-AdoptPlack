@@ -20,13 +20,11 @@ no_index:
     - inc
     - t
 requires:
-  Carp::Clan: 0
-  Catalyst::Component::InstancePerContext: 0
-  Moose: 0
-  namespace::autoclean: 0
-  perl: 5.8.0
+  Catalyst::Component::InstancePerContext: 0.001001
+  Moose: 1.21
+  perl: 5.8.4
 resources:
   homepage: http://search.cpan.org/dist/Catalyst-TraitFor-Model-DBIC-Schema-QueryLog-AdoptPlack/
   license: http://dev.perl.org/licenses/
   repository: git://github.com/jjn1056/Catalyst-TraitFor-Model-DBIC-Schema-QueryLog-AdoptPlack.git
-version: 0.03
+version: 0.04
