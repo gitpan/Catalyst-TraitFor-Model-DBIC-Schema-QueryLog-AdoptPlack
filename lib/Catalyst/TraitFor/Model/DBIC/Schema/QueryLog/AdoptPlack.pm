@@ -1,5 +1,5 @@
 package Catalyst::TraitFor::Model::DBIC::Schema::QueryLog::AdoptPlack;
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 
 use 5.008004;
 use Moose::Role;
@@ -14,17 +14,44 @@ sub get_querylog_from_env {
   return Plack::Middleware::DBIC::QueryLog->get_querylog_from_env($env);
 }
 
+sub infer_env_from {
+  my ($self, $ctx) = @_;
+  if($ctx->engine->can('env')) {
+    return $ctx->engine->env;
+  } elsif($ctx->request->can('env')) {
+    return $ctx->request->env;
+  } else { return }
+}
+
+sub enable_dbic_querylogging {
+  my ($self, $querylog) = @_;
+  $self->storage->debugobj($querylog);
+  $self->storage->debug(1);
+}
+
+sub die_missing_querylog {
+  die <<DEAD;
+You asked me to querylog DBIC, but there is no querylog object in the Plack
+\$env. You probably forgot to enable Plack::Middleware::Debug::DBIC::QueryLog
+in your debugging panel.
+DEAD
+}
+
+sub die_not_plack {
+  die "Not a Plack Engine or compatible interface!"
+}
+
 sub build_per_context_instance {
   my ( $self, $ctx ) = @_;
-  if($ctx->engine->can('env')) {
-    my $env = $ctx->engine->env;
+  if(my $env = $self->infer_env_from($ctx)) {
     if(my $querylog = $self->get_querylog_from_env($env)) {
-      $self->storage->debugobj($querylog);
-      $self->storage->debug(1);
+      $self->enable_dbic_querylogging($querylog);
+      return $self;
+    } else {
+      die_missing_querylog();
     }
-    return $self;
   } else {
-      die "Not a Plack Engine or compatible interface!";
+    die_not_plack();
   }
 }
 
@@ -82,7 +109,7 @@ John Napiorkowski, C<< <jjnapiork@cpan.org> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2011, John Napiorkowski
+Copyright 2012, John Napiorkowski
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
