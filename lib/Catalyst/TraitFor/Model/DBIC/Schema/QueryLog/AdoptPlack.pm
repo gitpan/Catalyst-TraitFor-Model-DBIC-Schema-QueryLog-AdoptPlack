@@ -1,13 +1,16 @@
 package Catalyst::TraitFor::Model::DBIC::Schema::QueryLog::AdoptPlack;
-our $VERSION = "0.06";
+our $VERSION = "0.07";
 
 use 5.008004;
 use Moose::Role;
 use Plack::Middleware::DBIC::QueryLog;
+use Scalar::Util 'blessed';
 
 with 'Catalyst::Component::InstancePerContext';
 
 requires 'storage';
+
+has show_missing_ql_warning => (is=>'rw', default=>1);
 
 sub get_querylog_from_env {
   my ($self, $env) = @_;
@@ -30,6 +33,7 @@ sub enable_dbic_querylogging {
 }
 
 sub die_missing_querylog {
+  shift->show_missing_ql_warning(0);
   die <<DEAD;
 You asked me to querylog DBIC, but there is no querylog object in the Plack
 \$env. You probably forgot to enable Plack::Middleware::Debug::DBIC::QueryLog
@@ -43,16 +47,20 @@ sub die_not_plack {
 
 sub build_per_context_instance {
   my ( $self, $ctx ) = @_;
+  return $self unless blessed($ctx);
+
   if(my $env = $self->infer_env_from($ctx)) {
     if(my $querylog = $self->get_querylog_from_env($env)) {
       $self->enable_dbic_querylogging($querylog);
-      return $self;
     } else {
-      die_missing_querylog();
+      $self->die_missing_querylog() if
+        $self->show_missing_ql_warning;
     }
   } else {
     die_not_plack();
   }
+
+  return $self;
 }
 
 1;
